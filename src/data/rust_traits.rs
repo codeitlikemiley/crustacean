@@ -240,7 +240,7 @@ Complete the function signature for `process_speakers`.
             normalize: DEFAULT_NORMALIZE,
             required: &[ValidationRule {
                 label: "use &[&dyn Speak] for the list type",
-                matcher: RuleMatcher::Regex(r"list\s*:\s*&\[\s*&dyn\s+Speak\s*\]"),
+                matcher: RuleMatcher::Regex(r#"list\s*:\s*&\[\s*&dyn\s+Speak\s*\]"#),
             }],
             forbidden: &[],
             canonical_solution: Some(
@@ -289,7 +289,7 @@ Add an associated constant to the `Identify` trait.
             normalize: DEFAULT_NORMALIZE,
             required: &[ValidationRule {
                 label: "add const VERSION: u32 = 1;",
-                matcher: RuleMatcher::Regex(r"const\s+VERSION\s*:\s*u32\s*=\s*1\s*;"),
+                matcher: RuleMatcher::Regex(r#"const\s+VERSION\s*:\s*u32\s*=\s*1\s*;"#),
             }],
             forbidden: &[],
             canonical_solution: Some(
@@ -499,7 +499,7 @@ Convert this function to use **`impl Speak`** syntax for the parameter `subject`
             ],
             forbidden: &[ValidationRule {
                 label: "remove the generic parameter version",
-                matcher: RuleMatcher::Regex(r"fn\s+greet\s*<\s*T\s*:\s*Speak\s*>"),
+                matcher: RuleMatcher::Regex(r#"fn\s+greet\s*<\s*T\s*:\s*Speak\s*>"#),
             }],
             canonical_solution: Some(
                 "trait Speak { fn say_hello(&self) -> String; }\n\nfn greet(subject: impl Speak) {\n    println!(\"{}\", subject.say_hello());\n}",
@@ -785,7 +785,7 @@ Make the associated type **`Item`** take a lifetime parameter **`<'a>`**.
             normalize: DEFAULT_NORMALIZE,
             required: &[ValidationRule {
                 label: "change Item to type Item<'a>;",
-                matcher: RuleMatcher::Regex(r"type\s+Item\s*<\s*'a\s*>\s*;"),
+                matcher: RuleMatcher::Regex(r#"type\s+Item\s*<\s*'a\s*>\s*;"#),
             }],
             forbidden: &[],
             canonical_solution: Some(

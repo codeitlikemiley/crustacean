@@ -228,7 +228,7 @@ Write a `for` loop that iterates from `1` to `5` (inclusive) and prints each num
             required: &[
                 ValidationRule {
                     label: "for loop with range 1..=5",
-                    matcher: RuleMatcher::Regex(r"for\s+\w+\s+in\s+1\.\.=5"),
+                    matcher: RuleMatcher::Regex(r#"for\s+\w+\s+in\s+1\.\.=5"#),
                 },
                 ValidationRule {
                     label: "print the loop variable",

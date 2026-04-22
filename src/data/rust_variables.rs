@@ -42,7 +42,7 @@ In Rust, `let` creates an **immutable binding** unless you opt into change with 
             required: &[
                 ValidationRule {
                     label: "declare `counter` with `let mut`",
-                    matcher: RuleMatcher::Regex(r"let\s+mut\s+counter\s*=\s*0\s*;"),
+                    matcher: RuleMatcher::Regex(r#"let\s+mut\s+counter\s*=\s*0\s*;"#),
                 },
                 ValidationRule {
                     label: "reassign `counter` to 1",
@@ -146,7 +146,7 @@ Create a constant named `MAX_POINTS` with type `u32` and value `100`.
             normalize: DEFAULT_NORMALIZE,
             required: &[ValidationRule {
                 label: "declare `const MAX_POINTS: u32 = 100;`",
-                matcher: RuleMatcher::Regex(r"const\s+MAX_POINTS\s*:\s*u32\s*=\s*100\s*;"),
+                matcher: RuleMatcher::Regex(r#"const\s+MAX_POINTS\s*:\s*u32\s*=\s*100\s*;"#),
             }],
             forbidden: &[ValidationRule {
                 label: "do not use `let` for a constant",
@@ -197,7 +197,7 @@ Create a variable named `retries` with:
             normalize: DEFAULT_NORMALIZE,
             required: &[ValidationRule {
                 label: "write `let retries: u8 = 3;`",
-                matcher: RuleMatcher::Regex(r"let\s+retries\s*:\s*u8\s*=\s*3\s*;"),
+                matcher: RuleMatcher::Regex(r#"let\s+retries\s*:\s*u8\s*=\s*3\s*;"#),
             }],
             forbidden: &[],
             canonical_solution: Some("let retries: u8 = 3;"),
