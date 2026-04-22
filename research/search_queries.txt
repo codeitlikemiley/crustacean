@@ -1,0 +1,10 @@
+Leptos Trunk tutorial setup client-side WASM
+leptos markdown rendering crates WASM
+leptos syntax highlighting code editor
+leptos project structure best practices 2024
+leptos tailwindcss trunk integration
+leptos_router client-side routing
+leptos split pane layout component
+leptos tutorial app architecture
+trunk cargo-leptos configuration tailwind
+leptos markdown parser comrak pulldown-cmark WASM

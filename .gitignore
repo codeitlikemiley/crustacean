@@ -1,0 +1,30 @@
+# Build outputs
+/target/
+/dist/
+
+# macOS
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Local config (secrets)
+.env
+.env.local
+gcp.env
+*.toml~
+
+# Trunk cache
+.trunk/
+
+# Backup files
+*.bak
+*.backup
+
+# Logs
+*.log

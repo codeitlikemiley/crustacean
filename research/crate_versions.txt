@@ -1,0 +1,44 @@
+=== VERIFIED CRATE VERSIONS (as of April 2026) ===
+
+Core:
+  leptos            = "0.8.19"    # Latest stable
+  leptos_router     = "0.8.13"    # Latest stable
+  leptos_meta       = "0.8.x"     # Matches leptos version
+  leptos-use        = "0.18.3"    # Latest stable
+  wasm-bindgen      = "0.2.118"   # Latest stable
+  console_error_panic_hook = "0.1.7"
+  console_log       = "1.0"
+  log               = "0.4"
+
+Code Editor:
+  kode-leptos       = "0.2.0"     # Code editor with syntax highlighting
+  arborium          = "2.16.0"    # Tree-sitter highlighting (kode dependency)
+  kode-core         = "0.2.0"     # Text buffer primitives
+  kode-markdown     = "0.2.0"     # Markdown intelligence
+
+Layout:
+  leptos-resize     = "0.3.0"     # Compatible with Leptos 0.8
+
+Markdown:
+  leptos-md         = "0.1.0"     # Simple Tailwind-styled renderer
+  markdown_view_leptos = "0.1.92" # MDX-like with embedded components
+  pulldown-cmark    = "0.13.3"    # CommonMark parser
+  comrak            = "0.52.0"    # GFM parser
+
+UI Components:
+  leptos-shadcn-ui  = "0.9.0"     # shadcn-style components for Leptos 0.8
+  leptos-lucide-rs  = "0.2.0"     # Lucide icons
+  leptos_icons      = "0.7.1"     # Icon components
+
+Utilities:
+  serde             = "1.0"       # Serialization
+  serde_json        = "1.0"       # JSON
+  regex             = "1.11"      # Regex for solution checking
+  include_dir       = "0.7.4"     # Directory embedding
+
+Build:
+  trunk             = "0.21.0"    # Binary: cargo install trunk --locked
+  cargo-leptos      = "0.3.6"     # Alternative build tool (not needed for CSR)
+
+Project Setup:
+  create-leptos-csr = "0.2.2"     # CLI: cargo install create-leptos-csr-tw

@@ -1,0 +1,10 @@
+pub mod header;
+pub mod footer;
+pub mod editor;
+pub mod content;
+pub mod terminal;
+pub mod app;
+pub mod catalog;
+pub mod course_detail;
+pub mod command_palette;
+pub mod keyboard_shortcuts;

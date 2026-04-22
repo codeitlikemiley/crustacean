@@ -1,0 +1,7 @@
+.git
+target
+dist
+node_modules
+.trunk
+*.log
+.DS_Store
