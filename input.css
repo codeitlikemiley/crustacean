@@ -157,9 +157,9 @@
   list-style: none;
   color: #94a3b8;
   margin-bottom: 0.625rem;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
+  padding-left: 1.5rem;
+  position: relative;
+  line-height: 1.6;
 }
 
 .markdown-body li::before {
@@ -167,6 +167,7 @@
   color: #ea580c;
   font-weight: 900;
   font-size: 0.625rem;
-  margin-top: 0.125rem;
-  flex-shrink: 0;
+  position: absolute;
+  left: 0;
+  top: 0.35em;
 }

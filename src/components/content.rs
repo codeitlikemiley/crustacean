@@ -62,7 +62,7 @@ pub fn Content(app: AppState) -> impl IntoView {
     let level_text = move || format!("Phase // Level {}", current_step.get() + 1);
 
     view! {
-        <section class="w-2/5 flex flex-col border-r border-white/5 bg-neutral-950 overflow-y-auto p-14 custom-scrollbar h-full">
+        <section class="w-2/5 flex flex-col border-r border-white/5 bg-neutral-950 overflow-y-auto px-8 py-10 custom-scrollbar h-full">
             <div class="flex items-center gap-2 text-orange-500 mb-8 font-mono text-xs font-black uppercase tracking-widest">
                 {step_type_icon}
                 {step_type_label}
