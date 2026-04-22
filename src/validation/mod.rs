@@ -328,7 +328,7 @@ fn collapse_whitespace(s: &str) -> String {
             prev_ws = false;
         }
     }
-    result.trim_end().to_string()
+    compact_punctuation_spacing(&result.trim_end())
 }
 
 /// Strip optional type annotations like `: f32`, `: bool`, `: &str`, etc.
@@ -793,12 +793,12 @@ mod tests {
     // ── Helper: collapse_whitespace unit tests ─────────────────────
     #[test]
     fn collapse_whitespace_normalizes_tabs_and_newlines() {
-        assert_eq!(collapse_whitespace("let\t x\n= 5;"), "let x = 5;");
+        assert_eq!(collapse_whitespace("let\t x\n= 5;"), "let x= 5;");
     }
 
     #[test]
     fn collapse_whitespace_trims_leading_trailing() {
-        assert_eq!(collapse_whitespace("  let x = 5;  "), "let x = 5;");
+        assert_eq!(collapse_whitespace("  let x = 5;  "), "let x= 5;");
     }
 
     // ── Helper: strip_type_annotations unit tests ──────────────────
