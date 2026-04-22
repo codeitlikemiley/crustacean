@@ -1,4 +1,5 @@
 use pulldown_cmark::{html, Options, Parser};
+use regex::Regex;
 
 pub fn render_markdown(text: &str) -> String {
     let mut options = Options::empty();
@@ -9,7 +10,30 @@ pub fn render_markdown(text: &str) -> String {
     let mut html_output = String::new();
     html::push_html(&mut html_output, parser);
 
+    // Post-process: apply syntax highlighting to code blocks
+    highlight_code_blocks(&mut html_output);
+
     html_output
+}
+
+fn highlight_code_blocks(html: &mut String) {
+    let re = Regex::new(r#"<pre><code(?:\s+class="language-\w+")?>((?s).*?)</code></pre>"#)
+        .unwrap();
+
+    let result = re.replace_all(html, |caps: &regex::Captures| {
+        let raw_code = &caps[1];
+        // Decode HTML entities back to plain text for the highlighter
+        let plain = raw_code
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'");
+        let highlighted = highlight_rust_code(&plain);
+        format!(r#"<pre class="highlighted-block"><code>{}</code></pre>"#, highlighted)
+    });
+
+    *html = result.into_owned();
 }
 
 pub fn highlight_rust_code(code: &str) -> String {

@@ -7,6 +7,7 @@ use crate::components::footer::Footer;
 use crate::components::header::Header;
 use crate::components::keyboard_shortcuts::KeyboardShortcuts;
 use crate::components::terminal::Terminal;
+use crate::data::ModuleType;
 use crate::state::{AppState, AppView};
 use leptos::prelude::*;
 
@@ -20,6 +21,18 @@ pub fn App() -> impl IntoView {
     let is_catalog = Signal::derive(move || matches!(current_view.get(), AppView::Catalog));
     let is_detail = Signal::derive(move || matches!(current_view.get(), AppView::CourseDetail { .. }));
     let is_lesson = Signal::derive(move || matches!(current_view.get(), AppView::Lesson { .. }));
+
+    let is_concept = Signal::derive(move || {
+        if let AppView::Lesson { ref course_id } = current_view.get() {
+            if let Some(course) = app.get_course(course_id) {
+                let step = app.current_step.get();
+                if step < course.modules.len() {
+                    return matches!(course.modules[step].module_type, ModuleType::Concept);
+                }
+            }
+        }
+        false
+    });
 
     let detail_course_id = Signal::derive(move || {
         if let AppView::CourseDetail { ref course_id } = current_view.get() {
@@ -45,12 +58,14 @@ pub fn App() -> impl IntoView {
             </Show>
 
             <Show when=move || is_lesson.get() fallback=|| ()>
-                <main class="flex flex-row flex-1 overflow-hidden">
-                    <Content app />
-                    <div class="flex-1 flex flex-col">
-                        <Editor app />
-                        <Terminal app />
-                    </div>
+                <main class="flex flex-col lg:flex-row flex-1 overflow-hidden">
+                    <Content app is_concept=is_concept />
+                    <Show when=move || !is_concept.get() fallback=|| ()>
+                        <div class="flex-1 flex flex-col min-w-0">
+                            <Editor app />
+                            <Terminal app />
+                        </div>
+                    </Show>
                 </main>
             </Show>
 
