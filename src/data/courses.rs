@@ -2,6 +2,7 @@ use crate::data::model::Course;
 use crate::data::rust_ownership::MODULES as RUST_OWNERSHIP_MODULES;
 use crate::data::rust_traits::MODULES as RUST_TRAITS_MODULES;
 use crate::data::rust_variables::MODULES as RUST_VARIABLES_MODULES;
+use crate::data::rust_primitives::MODULES as RUST_PRIMITIVES_MODULES;
 
 pub const COURSES: &[Course] = &[
     Course {
@@ -23,6 +24,16 @@ pub const COURSES: &[Course] = &[
         modules: RUST_VARIABLES_MODULES,
         difficulty: crate::data::model::Difficulty::Beginner,
         estimated_time: "45-60 min",
+    },
+    Course {
+        id: "rust-primitives",
+        title: "Rust Primitive Types",
+        subtitle: "Learn scalars (integers, floats, bools, chars) and compound types (arrays, tuples)",
+        icon: "\u{1F9F1}",
+        accent: "indigo",
+        modules: RUST_PRIMITIVES_MODULES,
+        difficulty: crate::data::model::Difficulty::Beginner,
+        estimated_time: "20-30 min",
     },
     Course {
         id: "rust-ownership",

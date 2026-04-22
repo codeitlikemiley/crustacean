@@ -47,6 +47,13 @@ pub enum RuleMatcher {
     AnyContains(&'static [&'static str]),
     OrderedContains(&'static [&'static str]),
     NormalizedExact(&'static str),
+    /// Whitespace-flexible matching that tolerates:
+    /// - extra/missing spaces, tabs, newlines between tokens
+    /// - optional type annotations (`: Type` after variable names)
+    /// - optional lifetime annotations (`'a`, `'static`, etc.)
+    /// The fragment is split on whitespace and each token must appear
+    /// in order in the normalized code.
+    FlexContains(&'static str),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -299,7 +306,71 @@ fn rule_matches(rule: &ValidationRule, code: &str, normalize: NormalizeOptions) 
         RuleMatcher::NormalizedExact(expected) => {
             normalize_code(expected, normalize) == normalize_code(code, normalize)
         }
+        RuleMatcher::FlexContains(fragment) => {
+            flex_contains(code, fragment)
+        }
     }
+}
+
+/// Collapse all whitespace (spaces, tabs, newlines) into single spaces,
+/// trim, and lowercase for comparison purposes.
+fn collapse_whitespace(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    let mut prev_ws = false;
+    for ch in s.chars() {
+        if ch.is_whitespace() {
+            if !prev_ws && !result.is_empty() {
+                result.push(' ');
+            }
+            prev_ws = true;
+        } else {
+            result.push(ch);
+            prev_ws = false;
+        }
+    }
+    result.trim_end().to_string()
+}
+
+/// Strip optional type annotations like `: f32`, `: bool`, `: &str`, etc.
+/// and optional lifetime annotations like `'a`, `'static`, `'_`
+/// so that `let temperature: f32 = 98.6;` matches `let temperature = 98.6;`.
+fn strip_type_annotations(code: &str) -> String {
+    // Remove type annotations after variable names in let/const bindings:
+    // `let name: Type = ...` -> `let name = ...`
+    // Also handles complex types like `: &'a str`, `: Vec<String>`, `: (i32, f64)`
+    let re_let_type = Regex::new(
+        r"(let\s+(?:mut\s+)?\w+)\s*:\s*[^=]+?(\s*=)"
+    ).unwrap();
+    let stripped = re_let_type.replace_all(code, "$1$2").to_string();
+
+    // Remove standalone lifetime annotations like 'a, 'static, '_ in signatures
+    let re_lifetime = Regex::new(r"'[a-zA-Z_]\w*\s*").unwrap();
+    re_lifetime.replace_all(&stripped, "").to_string()
+}
+
+/// Flexible matching: checks if the expected fragment is present in the code,
+/// tolerating whitespace variations and optional type/lifetime annotations.
+fn flex_contains(code: &str, expected: &str) -> bool {
+    // 1. Direct match (fast path)
+    if code.contains(expected) {
+        return true;
+    }
+
+    // 2. Whitespace-collapsed match
+    let collapsed_code = collapse_whitespace(code);
+    let collapsed_expected = collapse_whitespace(expected);
+    if collapsed_code.contains(&collapsed_expected) {
+        return true;
+    }
+
+    // 3. Type-annotation-stripped + whitespace-collapsed match
+    let stripped_code = strip_type_annotations(code);
+    let collapsed_stripped = collapse_whitespace(&stripped_code);
+    if collapsed_stripped.contains(&collapsed_expected) {
+        return true;
+    }
+
+    false
 }
 
 fn strip_line_comment(line: &str) -> String {
@@ -344,7 +415,7 @@ fn compact_punctuation_spacing(code: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::{RUST_OWNERSHIP_MODULES, RUST_TRAIT_MASTERY_MODULES, RUST_VARIABLES_MODULES};
+    use crate::data::{RUST_OWNERSHIP_MODULES, RUST_PRIMITIVES_MODULES, RUST_TRAIT_MASTERY_MODULES, RUST_VARIABLES_MODULES};
 
     #[test]
     fn normalizes_line_endings_and_blank_lines() {
@@ -564,5 +635,190 @@ mod tests {
             .iter()
             .find(|module| module.id == id)
             .expect("module should exist")
+    }
+
+    fn find_primitives_module(id: &str) -> &'static TutorialModule {
+        RUST_PRIMITIVES_MODULES
+            .iter()
+            .find(|module| module.id == id)
+            .expect("module should exist")
+    }
+
+    // ── FlexContains: whitespace tolerance ─────────────────────────
+    #[test]
+    fn flex_contains_matches_exact() {
+        let rule = ValidationRule {
+            label: "exact",
+            matcher: RuleMatcher::FlexContains("let x = 5;"),
+        };
+        assert!(rule_matches(&rule, "let x = 5;", NormalizeOptions::default()));
+    }
+
+    #[test]
+    fn flex_contains_tolerates_extra_spaces() {
+        let rule = ValidationRule {
+            label: "spaces",
+            matcher: RuleMatcher::FlexContains("let x = 5;"),
+        };
+        assert!(rule_matches(&rule, "let  x  =  5;", NormalizeOptions::default()));
+    }
+
+    #[test]
+    fn flex_contains_tolerates_tabs() {
+        let rule = ValidationRule {
+            label: "tabs",
+            matcher: RuleMatcher::FlexContains("let x = 5;"),
+        };
+        assert!(rule_matches(&rule, "let\tx\t=\t5;", NormalizeOptions::default()));
+    }
+
+    #[test]
+    fn flex_contains_tolerates_newlines() {
+        let rule = ValidationRule {
+            label: "newlines",
+            matcher: RuleMatcher::FlexContains("let x = 5;"),
+        };
+        assert!(rule_matches(&rule, "let\n  x\n  = 5;", NormalizeOptions::default()));
+    }
+
+    // ── FlexContains: type annotation tolerance ────────────────────
+    #[test]
+    fn flex_contains_tolerates_explicit_type_annotation() {
+        let rule = ValidationRule {
+            label: "typed",
+            matcher: RuleMatcher::FlexContains("let temperature = 98.6;"),
+        };
+        assert!(rule_matches(&rule, "let temperature: f32 = 98.6;", NormalizeOptions::default()));
+        assert!(rule_matches(&rule, "let temperature: f64 = 98.6;", NormalizeOptions::default()));
+    }
+
+    #[test]
+    fn flex_contains_tolerates_bool_type_annotation() {
+        let rule = ValidationRule {
+            label: "bool typed",
+            matcher: RuleMatcher::FlexContains("let is_fever = true;"),
+        };
+        assert!(rule_matches(&rule, "let is_fever: bool = true;", NormalizeOptions::default()));
+    }
+
+    #[test]
+    fn flex_contains_tolerates_mut_with_type() {
+        let rule = ValidationRule {
+            label: "mut typed",
+            matcher: RuleMatcher::FlexContains("let mut counter = 0;"),
+        };
+        assert!(rule_matches(&rule, "let mut counter: i32 = 0;", NormalizeOptions::default()));
+    }
+
+    #[test]
+    fn flex_contains_tolerates_reference_type_annotation() {
+        let rule = ValidationRule {
+            label: "ref typed",
+            matcher: RuleMatcher::FlexContains("let name = \"hello\";"),
+        };
+        assert!(rule_matches(&rule, "let name: &str = \"hello\";", NormalizeOptions::default()));
+    }
+
+    #[test]
+    fn flex_contains_rejects_wrong_value() {
+        let rule = ValidationRule {
+            label: "wrong val",
+            matcher: RuleMatcher::FlexContains("let x = 5;"),
+        };
+        assert!(!rule_matches(&rule, "let x = 10;", NormalizeOptions::default()));
+    }
+
+    #[test]
+    fn flex_contains_rejects_wrong_name() {
+        let rule = ValidationRule {
+            label: "wrong name",
+            matcher: RuleMatcher::FlexContains("let temperature = 98.6;"),
+        };
+        assert!(!rule_matches(&rule, "let temp = 98.6;", NormalizeOptions::default()));
+    }
+
+    // ── FlexContains: type + whitespace combined ───────────────────
+    #[test]
+    fn flex_contains_type_annotation_with_extra_spaces() {
+        let rule = ValidationRule {
+            label: "combined",
+            matcher: RuleMatcher::FlexContains("let temperature = 98.6;"),
+        };
+        assert!(rule_matches(&rule, "let  temperature : f32  =  98.6 ;", NormalizeOptions::default()));
+    }
+
+    // ── Primitives course regression tests ─────────────────────────
+    #[test]
+    fn primitives_scalar_bindings_canonical_passes() {
+        let module = find_primitives_module("prim-2-practice");
+        let result = validate_module(module, "let temperature = 98.6;\nlet is_fever = true;");
+        assert!(result.passed, "canonical solution should pass: {:?}", result.feedback_lines);
+    }
+
+    #[test]
+    fn primitives_scalar_bindings_with_type_annotations_passes() {
+        let module = find_primitives_module("prim-2-practice");
+        let result = validate_module(module, "let temperature: f32 = 98.6;\nlet is_fever: bool = true;");
+        assert!(result.passed, "typed solution should pass: {:?}", result.feedback_lines);
+    }
+
+    #[test]
+    fn primitives_scalar_bindings_with_extra_whitespace_passes() {
+        let module = find_primitives_module("prim-2-practice");
+        let result = validate_module(module, "let  temperature  =  98.6;\nlet  is_fever  =  true;");
+        assert!(result.passed, "spaced solution should pass: {:?}", result.feedback_lines);
+    }
+
+    #[test]
+    fn primitives_scalar_bindings_with_comment_prefix_passes() {
+        let module = find_primitives_module("prim-2-practice");
+        let result = validate_module(module, "// Declare temperature and is_fever here\nlet temperature = 98.6;\nlet is_fever = true;");
+        assert!(result.passed, "commented solution should pass: {:?}", result.feedback_lines);
+    }
+
+    #[test]
+    fn primitives_compound_types_canonical_passes() {
+        let module = find_primitives_module("prim-4-practice");
+        let result = validate_module(module, "let months = [\"Jan\", \"Feb\"];\nlet coordinates = (10.5, 20.5);");
+        assert!(result.passed, "canonical should pass: {:?}", result.feedback_lines);
+    }
+
+    #[test]
+    fn primitives_compound_types_with_annotations_passes() {
+        let module = find_primitives_module("prim-4-practice");
+        let result = validate_module(module, "let months: [&str; 2] = [\"Jan\", \"Feb\"];\nlet coordinates: (f64, f64) = (10.5, 20.5);");
+        assert!(result.passed, "typed compound should pass: {:?}", result.feedback_lines);
+    }
+
+    // ── Helper: collapse_whitespace unit tests ─────────────────────
+    #[test]
+    fn collapse_whitespace_normalizes_tabs_and_newlines() {
+        assert_eq!(collapse_whitespace("let\t x\n= 5;"), "let x = 5;");
+    }
+
+    #[test]
+    fn collapse_whitespace_trims_leading_trailing() {
+        assert_eq!(collapse_whitespace("  let x = 5;  "), "let x = 5;");
+    }
+
+    // ── Helper: strip_type_annotations unit tests ──────────────────
+    #[test]
+    fn strip_type_removes_simple_annotation() {
+        assert_eq!(strip_type_annotations("let x: i32 = 5;"), "let x = 5;");
+    }
+
+    #[test]
+    fn strip_type_removes_reference_annotation() {
+        assert_eq!(strip_type_annotations("let s: &str = \"hi\";"), "let s = \"hi\";");
+    }
+
+    #[test]
+    fn strip_type_removes_mut_annotation() {
+        assert_eq!(strip_type_annotations("let mut c: u8 = 0;"), "let mut c = 0;");
+    }
+
+    #[test]
+    fn strip_type_preserves_no_annotation() {
+        assert_eq!(strip_type_annotations("let x = 5;"), "let x = 5;");
     }
 }
