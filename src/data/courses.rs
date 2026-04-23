@@ -18,6 +18,33 @@ use crate::data::rust_concurrency::MODULES as RUST_CONCURRENCY_MODULES;
 use crate::data::rust_async::MODULES as RUST_ASYNC_MODULES;
 use crate::data::rust_unsafe::MODULES as RUST_UNSAFE_MODULES;
 use crate::data::rust_macros::MODULES as RUST_MACROS_MODULES;
+use crate::data::focus_trait_objects::MODULES as FOCUS_TRAIT_OBJECTS_MODULES;
+use crate::data::focus_from_into::MODULES as FOCUS_FROM_INTO_MODULES;
+use crate::data::focus_newtype::MODULES as FOCUS_NEWTYPE_MODULES;
+use crate::data::focus_cow::MODULES as FOCUS_COW_MODULES;
+use crate::data::focus_builder::MODULES as FOCUS_BUILDER_MODULES;
+use crate::data::focus_deref::MODULES as FOCUS_DEREF_MODULES;
+use crate::data::focus_fn_traits::MODULES as FOCUS_FN_TRAITS_MODULES;
+use crate::data::focus_object_safety::MODULES as FOCUS_OBJECT_SAFETY_MODULES;
+use crate::data::focus_blanket_impls::MODULES as FOCUS_BLANKET_IMPLS_MODULES;
+use crate::data::focus_hrtb::MODULES as FOCUS_HRTB_MODULES;
+use crate::data::focus_associated_types::MODULES as FOCUS_ASSOCIATED_TYPES_MODULES;
+use crate::data::focus_typestate::MODULES as FOCUS_TYPESTATE_MODULES;
+use crate::data::focus_supertraits::MODULES as FOCUS_SUPERTRAITS_MODULES;
+use crate::data::focus_drop::MODULES as FOCUS_DROP_MODULES;
+use crate::data::focus_default::MODULES as FOCUS_DEFAULT_MODULES;
+use crate::data::focus_orphan_rule::MODULES as FOCUS_ORPHAN_RULE_MODULES;
+use crate::data::focus_pin_unpin::MODULES as FOCUS_PIN_UNPIN_MODULES;
+use crate::data::focus_lifetime_elision::MODULES as FOCUS_LIFETIME_ELISION_MODULES;
+use crate::data::focus_state_machine::MODULES as FOCUS_STATE_MACHINE_MODULES;
+use crate::data::focus_sealed_traits::MODULES as FOCUS_SEALED_TRAITS_MODULES;
+use crate::data::focus_phantom_types::MODULES as FOCUS_PHANTOM_TYPES_MODULES;
+use crate::data::focus_never_type::MODULES as FOCUS_NEVER_TYPE_MODULES;
+use crate::data::focus_display_debug::MODULES as FOCUS_DISPLAY_DEBUG_MODULES;
+use crate::data::focus_operator_overloading::MODULES as FOCUS_OPERATOR_OVERLOADING_MODULES;
+use crate::data::focus_impl_trait::MODULES as FOCUS_IMPL_TRAIT_MODULES;
+use crate::data::focus_static_lifetime::MODULES as FOCUS_STATIC_LIFETIME_MODULES;
+use crate::data::focus_into_iterator::MODULES as FOCUS_INTO_ITERATOR_MODULES;
 
 pub const COURSES: &[Course] = &[
     Course {
@@ -209,5 +236,276 @@ pub const COURSES: &[Course] = &[
         modules: RUST_GENERICS_MODULES,
         difficulty: crate::data::model::Difficulty::Intermediate,
         estimated_time: "60 min",
+    },
+    // ─── Hyper-Focus Topics ───────────────────────────────
+    Course {
+        id: "focus-trait-objects",
+        title: "\u{1F3AF} Trait Objects (dyn Trait)",
+        subtitle: "Dynamic dispatch, vtables, and heterogeneous collections",
+        icon: "\u{1F3AF}",
+        accent: "violet",
+        modules: FOCUS_TRAIT_OBJECTS_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "20 min",
+    },
+    Course {
+        id: "focus-from-into",
+        title: "\u{1F3AF} From / Into / TryFrom",
+        subtitle: "The idiomatic conversion pipeline and the ? operator relationship",
+        icon: "\u{1F504}",
+        accent: "cyan",
+        modules: FOCUS_FROM_INTO_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "25 min",
+    },
+    Course {
+        id: "focus-newtype",
+        title: "\u{1F3AF} Newtype Pattern",
+        subtitle: "Zero-cost type wrappers for safety and orphan rule bypass",
+        icon: "\u{1F4E6}",
+        accent: "amber",
+        modules: FOCUS_NEWTYPE_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "15 min",
+    },
+    Course {
+        id: "focus-cow",
+        title: "\u{1F3AF} Cow (Clone on Write)",
+        subtitle: "Avoid cloning until mutation is actually needed",
+        icon: "\u{1F404}",
+        accent: "lime",
+        modules: FOCUS_COW_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "15 min",
+    },
+    Course {
+        id: "focus-builder",
+        title: "\u{1F3AF} Builder Pattern",
+        subtitle: "Fluent API construction for complex structs",
+        icon: "\u{1F3D7}",
+        accent: "sky",
+        modules: FOCUS_BUILDER_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "15 min",
+    },
+    Course {
+        id: "focus-deref",
+        title: "\u{1F3AF} Deref & DerefMut",
+        subtitle: "Smart pointer magic and automatic coercion chains",
+        icon: "\u{1F517}",
+        accent: "rose",
+        modules: FOCUS_DEREF_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "15 min",
+    },
+    Course {
+        id: "focus-fn-traits",
+        title: "\u{1F3AF} Fn / FnMut / FnOnce",
+        subtitle: "Deep dive into closure traits, boxing, and returning closures",
+        icon: "\u{1F9E9}",
+        accent: "indigo",
+        modules: FOCUS_FN_TRAITS_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "15 min",
+    },
+    Course {
+        id: "focus-object-safety",
+        title: "\u{1F3AF} Object Safety Rules",
+        subtitle: "Why some traits can't be dyn and how to fix them",
+        icon: "\u{1F6E1}",
+        accent: "orange",
+        modules: FOCUS_OBJECT_SAFETY_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-blanket-impls",
+        title: "\u{1F3AF} Blanket Implementations",
+        subtitle: "impl<T: Display> ToString for T — how stdlib does magic",
+        icon: "\u{1FA84}",
+        accent: "teal",
+        modules: FOCUS_BLANKET_IMPLS_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-hrtb",
+        title: "\u{1F3AF} Higher-Rank Trait Bounds",
+        subtitle: "for<'a> Fn(&'a str) — universally quantified lifetimes",
+        icon: "\u{1F9EC}",
+        accent: "purple",
+        modules: FOCUS_HRTB_MODULES,
+        difficulty: crate::data::model::Difficulty::Advanced,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-associated-types",
+        title: "\u{1F3AF} Associated Types vs Generics",
+        subtitle: "When to use type Item vs <T> — design tradeoffs",
+        icon: "\u{2696}",
+        accent: "emerald",
+        modules: FOCUS_ASSOCIATED_TYPES_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-typestate",
+        title: "\u{1F3AF} Type State Pattern",
+        subtitle: "Encode state machines at the type level — invalid states are unrepresentable",
+        icon: "\u{1F3AD}",
+        accent: "fuchsia",
+        modules: FOCUS_TYPESTATE_MODULES,
+        difficulty: crate::data::model::Difficulty::Advanced,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-supertraits",
+        title: "\u{1F3AF} Supertraits",
+        subtitle: "Require one trait to implement another with trait B: A",
+        icon: "\u{1F451}",
+        accent: "amber",
+        modules: FOCUS_SUPERTRAITS_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "8 min",
+    },
+    Course {
+        id: "focus-drop",
+        title: "\u{1F3AF} The Drop Trait",
+        subtitle: "Custom destructors, RAII pattern, and early drop with std::mem::drop",
+        icon: "\u{1F9F9}",
+        accent: "red",
+        modules: FOCUS_DROP_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-default",
+        title: "\u{1F3AF} The Default Trait",
+        subtitle: "Sensible defaults, #[derive(Default)], and struct update syntax",
+        icon: "\u{2699}",
+        accent: "slate",
+        modules: FOCUS_DEFAULT_MODULES,
+        difficulty: crate::data::model::Difficulty::Beginner,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-orphan-rule",
+        title: "\u{1F3AF} Orphan Rule & Coherence",
+        subtitle: "Why you can't impl Foreign for Foreign and how to work around it",
+        icon: "\u{1F6D1}",
+        accent: "orange",
+        modules: FOCUS_ORPHAN_RULE_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-pin-unpin",
+        title: "\u{1F3AF} Pin & Unpin",
+        subtitle: "Why self-referential structs need pinning and how async uses it",
+        icon: "\u{1F4CC}",
+        accent: "purple",
+        modules: FOCUS_PIN_UNPIN_MODULES,
+        difficulty: crate::data::model::Difficulty::Advanced,
+        estimated_time: "15 min",
+    },
+    Course {
+        id: "focus-lifetime-elision",
+        title: "\u{1F3AF} Lifetime Elision Rules",
+        subtitle: "The 3 rules the compiler uses and when you must annotate manually",
+        icon: "\u{23F3}",
+        accent: "cyan",
+        modules: FOCUS_LIFETIME_ELISION_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-state-machine",
+        title: "\u{1F3AF} State Machine with Enums",
+        subtitle: "Compile-time enforced state transitions using match exhaustiveness",
+        icon: "\u{1F3B0}",
+        accent: "lime",
+        modules: FOCUS_STATE_MACHINE_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-sealed-traits",
+        title: "\u{1F3AF} Sealed Traits",
+        subtitle: "Prevent external crates from implementing your trait",
+        icon: "\u{1F512}",
+        accent: "rose",
+        modules: FOCUS_SEALED_TRAITS_MODULES,
+        difficulty: crate::data::model::Difficulty::Advanced,
+        estimated_time: "8 min",
+    },
+    Course {
+        id: "focus-phantom-types",
+        title: "\u{1F3AF} Phantom Types",
+        subtitle: "PhantomData<T> — encode compile-time state without storing data",
+        icon: "\u{1F47B}",
+        accent: "slate",
+        modules: FOCUS_PHANTOM_TYPES_MODULES,
+        difficulty: crate::data::model::Difficulty::Advanced,
+        estimated_time: "8 min",
+    },
+    Course {
+        id: "focus-never-type",
+        title: "\u{1F3AF} The Never Type (!)",
+        subtitle: "Diverging functions and infallible conversions",
+        icon: "\u{267E}",
+        accent: "red",
+        modules: FOCUS_NEVER_TYPE_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "8 min",
+    },
+    Course {
+        id: "focus-display-debug",
+        title: "\u{1F3AF} Display vs Debug",
+        subtitle: "User-facing vs developer-facing formatting",
+        icon: "\u{1F4CB}",
+        accent: "sky",
+        modules: FOCUS_DISPLAY_DEBUG_MODULES,
+        difficulty: crate::data::model::Difficulty::Beginner,
+        estimated_time: "8 min",
+    },
+    Course {
+        id: "focus-operator-overloading",
+        title: "\u{1F3AF} Operator Overloading",
+        subtitle: "Add, Mul, PartialEq — make custom types feel built-in",
+        icon: "\u{2795}",
+        accent: "violet",
+        modules: FOCUS_OPERATOR_OVERLOADING_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-impl-trait",
+        title: "\u{1F3AF} impl Trait (RPIT & APIT)",
+        subtitle: "Existential types in argument and return position",
+        icon: "\u{1F50D}",
+        accent: "teal",
+        modules: FOCUS_IMPL_TRAIT_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-static-lifetime",
+        title: "\u{1F3AF} 'static Lifetime",
+        subtitle: "Owned data, string literals, and T: 'static demystified",
+        icon: "\u{1F4A0}",
+        accent: "indigo",
+        modules: FOCUS_STATIC_LIFETIME_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "12 min",
+    },
+    Course {
+        id: "focus-into-iterator",
+        title: "\u{1F3AF} IntoIterator",
+        subtitle: "Make your custom types work with for loops",
+        icon: "\u{1F503}",
+        accent: "emerald",
+        modules: FOCUS_INTO_ITERATOR_MODULES,
+        difficulty: crate::data::model::Difficulty::Intermediate,
+        estimated_time: "8 min",
     },
 ];

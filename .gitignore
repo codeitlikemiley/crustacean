@@ -28,3 +28,6 @@ gcp.env
 
 # Logs
 *.log
+
+# Uncommitted documentation
+.docs/
