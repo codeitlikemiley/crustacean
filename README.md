@@ -1,19 +1,26 @@
-# Tuts - Rust + Leptos Tutorial Platform
+# Goldcoders - Rust Mastery Course
 
-A specialized, frontend-only interactive learning platform for Rust. Build modern Rust applications with Leptos 0.8 while mastering Rust concepts through guided exercises and local validation.
+Welcome to the **Rust Mastery Course**, an interactive, hands-on learning platform designed to take you from a complete Rust newbie to an advanced systems programmer. Whether you want to conquer the borrow checker, understand lifetimes, or master unsafe Rust and procedural macros, this platform provides bite-sized, interactive lessons to get you there.
 
-## 🚀 Getting Started
+You can dive into the curriculum [online for free](https://masterustacean.goldcoders.dev), or you can run it locally on your own machine. Even better, because the entire platform is open source, you can use our built-in AI tools to generate and teach your very own custom Rust courses!
+
+## 🚀 Getting Started Locally
+
+Running the platform locally allows you to learn offline, experiment with the exercises, and author your own content.
 
 ### Prerequisites
 
 - **Rust**: [Install Rust](https://rustup.rs/)
 - **wasm32 target**: `rustup target add wasm32-unknown-unknown`
 - **Trunk**: `cargo install --locked trunk`
-- **Tailwind CSS**: (Handled automatically by Trunk in this project)
 
-### Local Development
+### Running the App
 
-1. Clone the repository.
+1. Clone the repository: 
+   ```bash
+   git clone https://github.com/codeitlikemiley/crustacean.git
+   cd crustacean
+   ```
 2. Run the development server:
    ```bash
    trunk serve
@@ -22,7 +29,7 @@ A specialized, frontend-only interactive learning platform for Rust. Build moder
 
 ## ⌨️ Keyboard Navigation
 
-Navigate the platform efficiently using these shortcuts:
+Navigate the platform efficiently using these shortcuts without taking your hands off the keyboard:
 
 ### Global
 - **Cmd/Ctrl + K**: Open/Close Command Palette
@@ -45,7 +52,7 @@ Navigate the platform efficiently using these shortcuts:
 
 ## ✍️ Creating Content (AI Skills)
 
-This project heavily utilizes AI-assisted content generation. We provide a dedicated **"Skill"** (instruction set) located at `skills/software-development/rust-tuts.md`. This file contains the exact semantic schema, validation logic, and architectural rules required to build new Rust courses for this platform.
+Want to teach a topic or create a custom curriculum? This project heavily utilizes AI-assisted content generation so you can build new courses in minutes. We provide a dedicated **"Skill"** (instruction set) located at `skills/software-development/rust-tuts.md`. 
 
 ### Using the Agent Skill
 
@@ -53,18 +60,16 @@ To quickly generate high-quality, validating Rust courses, you should rely on an
 
 1. **Activate the Skill**:
    - Instruct your agent to read the skill file: `Please review the skill at skills/software-development/rust-tuts.md`.
-   - The agent will learn our exact data structure (`TutorialModule`, `ValidationSpec`, `NormalizeOptions`, `RuleMatcher`, etc.) and the "frontend-only" validation philosophy.
+   - The agent will learn our exact data structure and our "frontend-only" validation philosophy.
 
 2. **Generate a Course**:
    - Ask the agent to generate a course on a specific topic (e.g., "Create a Deep Dive Focus course on Rust Atomics").
-   - The agent will automatically generate a new `src/data/focus_atomics.rs` file with balanced `Concept` and `Practice` lessons.
+   - The agent will automatically generate a new data file with balanced `Concept` and `Practice` lessons.
    - It will write custom regex/contains matching rules that act as our "compiler-less" validation engine.
 
 3. **Register the Course**:
    - Have the agent (or manually) expose the new module in `src/data/mod.rs` and `src/data/lesson_pool.rs`.
    - Finally, add the `Course` struct definition to the `COURSES` array in `src/data/courses.rs`.
-
-By strictly following the `rust-tuts.md` skill, we ensure that all generated courses are perfectly consistent, immediately compilable, and adhere to the platform's unique UX patterns.
 
 ## 🤝 Contributing a Lesson
 
@@ -72,10 +77,10 @@ We welcome community contributions! If you've created a great lesson or course t
 
 1. **Fork & Clone**: Fork this repository to your GitHub account and clone it locally.
 2. **Create a Branch**: Create a new branch for your lesson (e.g., `git checkout -b feature/add-my-lesson`).
-3. **Build Your Lesson**: Follow the "Creating Content" steps above to add your data file in `src/data/` and register it in `src/data/courses.rs`.
+3. **Build Your Lesson**: Follow the "Creating Content" steps above.
 4. **Test Locally**: Run `trunk serve` and ensure your lesson renders correctly, all exercises validate properly, and there are no compiler warnings.
-5. **Commit & Push**: Commit your changes with a clear message and push the branch to your fork.
-6. **Open a PR**: Open a Pull Request from your fork to our `master` branch. Please include a brief description of what your lesson covers and the Rust concepts it teaches!
+5. **Commit & Push**: Commit your changes and push the branch to your fork.
+6. **Open a PR**: Open a Pull Request from your fork to our `master` branch.
 
 ## 🚢 Deployment
 
@@ -108,15 +113,11 @@ Every push to the `master` branch triggers a rebuild and redeployment via GitHub
 - `GCP_PROJECT_ID`: Your GCP Project ID (e.g., `my-first-project`).
 - `GCP_SA_KEY`: A JSON Service Account Key with permissions for Cloud Build and Cloud Run.
 
-### Domain Mapping
-To map `masterustacean.goldcoders.dev`:
-1. Go to **Cloud Run** > **Manage Custom Domains**.
-2. Add a mapping for the `tuts` service.
-3. Update your DNS records as provided by GCP.
-
 ## 🛠 Tech Stack
 
-- **Frontend**: Leptos 0.8 (CSR)
+If you're curious about how this platform was built, here is the underlying architecture:
+
+- **Frontend**: Leptos 0.8 (Client-Side Rendering)
 - **Styling**: Tailwind CSS
 - **Bundler**: Trunk
 - **Deployment**: Google Cloud Run + GitHub Actions
