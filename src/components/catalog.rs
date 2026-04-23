@@ -1,8 +1,15 @@
 #![allow(unused_parens)]
 use crate::data::COURSES;
 use crate::data::Difficulty;
+use crate::data::model::CourseKind;
 use crate::state::AppState;
 use leptos::prelude::*;
+
+#[derive(Clone, PartialEq, Copy)]
+enum CatalogTab {
+    GuidedPaths,
+    DeepDives,
+}
 
 #[derive(Clone, PartialEq)]
 enum DifficultyFilter {
@@ -41,7 +48,37 @@ impl DifficultyFilter {
     }
 }
 
-fn course_matches_search(course: &crate::data::Course, query: &str) -> bool {
+#[derive(Clone, PartialEq)]
+enum TagFilter {
+    All,
+    Tag(String),
+}
+
+impl TagFilter {
+    fn active_class(&self, is_active: bool) -> &'static str {
+        if is_active {
+            "bg-indigo-500 text-white border-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.3)]"
+        } else {
+            "bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-slate-300"
+        }
+    }
+}
+
+fn get_unique_tags() -> Vec<String> {
+    let mut tags = std::collections::HashSet::new();
+    for c in COURSES {
+        if matches!(c.kind, CourseKind::Focus) {
+            for t in c.tags {
+                tags.insert(t.to_string());
+            }
+        }
+    }
+    let mut vec: Vec<String> = tags.into_iter().collect();
+    vec.sort();
+    vec
+}
+
+fn course_matches_search(course: &crate::data::model::Course, query: &str) -> bool {
     if query.is_empty() {
         return true;
     }
@@ -56,45 +93,52 @@ fn course_matches_search(course: &crate::data::Course, query: &str) -> bool {
 pub fn Catalog(app: AppState) -> impl IntoView {
     let search_query = RwSignal::new(String::new());
     let difficulty_filter = RwSignal::new(DifficultyFilter::All);
+    let tag_filter = RwSignal::new(TagFilter::All);
+    let active_tab = RwSignal::new(CatalogTab::GuidedPaths);
+
+    let all_tags = get_unique_tags();
 
     // Derived filtered courses list
-    let filtered_courses = Signal::derive({
-        move || {
-            let query = search_query.get();
-            let filter = difficulty_filter.get();
-            COURSES
-                .iter()
-                .filter(|c| course_matches_search(c, &query) && filter.matches(&c.difficulty))
-                .collect::<Vec<_>>()
-        }
+    let filtered_courses = Signal::derive(move || {
+        let query = search_query.get();
+        let diff = difficulty_filter.get();
+        let tag = tag_filter.get();
+        let tab = active_tab.get();
+
+        COURSES
+            .iter()
+            .filter(|c| {
+                let tab_match = match tab {
+                    CatalogTab::GuidedPaths => !matches!(c.kind, CourseKind::Focus),
+                    CatalogTab::DeepDives => matches!(c.kind, CourseKind::Focus),
+                };
+                if !tab_match {
+                    return false;
+                }
+
+                if !course_matches_search(c, &query) {
+                    return false;
+                }
+
+                match tab {
+                    CatalogTab::GuidedPaths => diff.matches(&c.difficulty),
+                    CatalogTab::DeepDives => match &tag {
+                        TagFilter::All => true,
+                        TagFilter::Tag(t) => c.tags.contains(&t.as_str()),
+                    },
+                }
+            })
+            .collect::<Vec<_>>()
     });
 
     // Platform-wide stats
-    let total_completed = Signal::derive({
-        let app = app;
-        move || app.get_total_lessons_completed()
-    });
-    let total_lessons = Signal::derive({
-        let app = app;
-        move || app.get_total_lessons()
-    });
-    let courses_started = Signal::derive({
-        let app = app;
-        move || app.get_courses_started_count()
-    });
+    let total_completed = Signal::derive(move || app.get_total_lessons_completed());
+    let total_lessons = Signal::derive(move || app.get_total_lessons());
+    let courses_started = Signal::derive(move || app.get_courses_started_count());
     let courses_total = COURSES.len();
-    let platform_pct = Signal::derive({
-        let app = app;
-        move || app.get_platform_progress_pct()
-    });
-    let mastery_level = Signal::derive({
-        let app = app;
-        move || app.get_mastery_level()
-    });
-    let next_milestone = Signal::derive({
-        let app = app;
-        move || app.get_next_milestone()
-    });
+    let platform_pct = Signal::derive(move || app.get_platform_progress_pct());
+    let mastery_level = Signal::derive(move || app.get_mastery_level());
+    let next_milestone = Signal::derive(move || app.get_next_milestone());
 
     let has_results = Signal::derive(move || !filtered_courses.get().is_empty());
     let has_any_progress = Signal::derive(move || total_completed.get() > 0);
@@ -108,7 +152,7 @@ pub fn Catalog(app: AppState) -> impl IntoView {
                     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
                         <div>
                             <h1 class="text-3xl sm:text-4xl font-black text-white mb-2 tracking-tight">
-                                <span class="text-orange-500">{"\u{1F980}"}</span>{" Rust Mastery"}
+                                <span class="text-orange-500">{"🦀"}</span>{" Rust Mastery"}
                             </h1>
                             <p class="text-slate-500 text-sm sm:text-base">
                                 Interactive lessons. Write code. Get instant feedback.
@@ -129,22 +173,22 @@ pub fn Catalog(app: AppState) -> impl IntoView {
                     <Show when=move || has_any_progress.get() fallback=|| ()>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
                             <StatCard
-                                icon="\u{1F4DA}"
+                                icon="📚"
                                 label="Lessons Done"
                                 value=move || total_completed.get().to_string()
                             />
                             <StatCard
-                                icon="\u{1F3AF}"
+                                icon="🎯"
                                 label="Total Lessons"
                                 value=move || total_lessons.get().to_string()
                             />
                             <StatCard
-                                icon="\u{1F680}"
+                                icon="🚀"
                                 label="Courses Started"
                                 value=move || format!("{}/{}", courses_started.get(), courses_total)
                             />
                             <StatCard
-                                icon="\u{2B50}"
+                                icon="⭐"
                                 label="Overall Progress"
                                 value=move || format!("{}%", platform_pct.get())
                             />
@@ -169,81 +213,81 @@ pub fn Catalog(app: AppState) -> impl IntoView {
                     </Show>
                 </div>
 
+                // TABS
+                <div class="flex gap-6 border-b border-white/10 mb-8 pb-4">
+                    <button 
+                        on:click=move |_| {
+                            active_tab.set(CatalogTab::GuidedPaths);
+                            search_query.set(String::new());
+                        }
+                        class=move || {
+                            let base = "font-black tracking-wider text-sm transition-colors pb-4 -mb-[17px] border-b-2 ";
+                            if active_tab.get() == CatalogTab::GuidedPaths {
+                                format!("{} text-white border-orange-500", base)
+                            } else {
+                                format!("{} text-slate-500 border-transparent hover:text-slate-300", base)
+                            }
+                        }
+                    >"📚 GUIDED PATHS"</button>
+                    <button 
+                        on:click=move |_| {
+                            active_tab.set(CatalogTab::DeepDives);
+                            search_query.set(String::new());
+                        }
+                        class=move || {
+                            let base = "font-black tracking-wider text-sm transition-colors pb-4 -mb-[17px] border-b-2 ";
+                            if active_tab.get() == CatalogTab::DeepDives {
+                                format!("{} text-white border-indigo-500", base)
+                            } else {
+                                format!("{} text-slate-500 border-transparent hover:text-slate-300", base)
+                            }
+                        }
+                    >"🎯 DEEP DIVES"</button>
+                </div>
+
                 // Search & Filter Bar
-                <div class="flex flex-col sm:flex-row gap-3 mb-8">
+                <div class="flex flex-col sm:flex-row gap-3 mb-8 items-start">
                     // Search input
-                    <div class="relative flex-1">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">{"\u{1F50D}"}</span>
+                    <div class="relative w-full sm:max-w-md shrink-0">
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm">{"🔍"}</span>
                         <input
                             type="text"
-                            placeholder="Search courses by title, topic, or difficulty..."
-                            class="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 transition-all"
+                            placeholder="Search courses..."
+                            class="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-white/20 transition-all"
                             on:input=move |ev| {
                                 let value = event_target_value(&ev);
                                 search_query.set(value);
                             }
                         />
-                        <Show when=move || !search_query.get().is_empty() fallback=|| ()>
-                            <button
-                                on:click=move |_| search_query.set(String::new())
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs"
-                            >
-                                {"\u{2715}"}
-                            </button>
-                        </Show>
                     </div>
 
-                    // Difficulty filter buttons
-                    <div class="flex gap-2 flex-shrink-0">
-                        <FilterButton
-                            filter=DifficultyFilter::All
-                            current=difficulty_filter
-                        />
-                        <FilterButton
-                            filter=DifficultyFilter::Beginner
-                            current=difficulty_filter
-                        />
-                        <FilterButton
-                            filter=DifficultyFilter::Intermediate
-                            current=difficulty_filter
-                        />
-                        <FilterButton
-                            filter=DifficultyFilter::Advanced
-                            current=difficulty_filter
-                        />
+                    // Context-aware filters
+                    <div class="flex-1 flex gap-2 overflow-x-auto pb-2 scrollbar-hide shrink-0 items-center h-[46px]">
+                        <Show 
+                            when=move || active_tab.get() == CatalogTab::GuidedPaths
+                            fallback=move || view! {
+                                <div class="flex gap-2">
+                                    <TagFilterButton filter=TagFilter::All current=tag_filter label="All".to_string() />
+                                    {all_tags.clone().into_iter().map(|t| view! {
+                                        <TagFilterButton filter=TagFilter::Tag(t.clone()) current=tag_filter label=t />
+                                    }).collect_view()}
+                                </div>
+                            }
+                        >
+                            <div class="flex gap-2">
+                                <DifficultyFilterButton filter=DifficultyFilter::All current=difficulty_filter />
+                                <DifficultyFilterButton filter=DifficultyFilter::Beginner current=difficulty_filter />
+                                <DifficultyFilterButton filter=DifficultyFilter::Intermediate current=difficulty_filter />
+                                <DifficultyFilterButton filter=DifficultyFilter::Advanced current=difficulty_filter />
+                            </div>
+                        </Show>
                     </div>
                 </div>
-
-                // Active filter indicator
-                <Show when=move || !search_query.get().is_empty() || difficulty_filter.get() != DifficultyFilter::All fallback=|| ()>
-                    <div class="flex items-center gap-2 mb-6">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Active filters:</span>
-                        <Show when=move || !search_query.get().is_empty()>
-                            <span class="text-[10px] font-mono bg-orange-500/10 text-orange-400 px-2 py-1 rounded-md border border-orange-500/20">
-                                {"\u{1F50D}"} {move || search_query.get()}
-                            </span>
-                        </Show>
-                        <Show when=move || difficulty_filter.get() != DifficultyFilter::All>
-                            <span class="text-[10px] font-mono bg-orange-500/10 text-orange-400 px-2 py-1 rounded-md border border-orange-500/20">
-                                {"\u{1F3F7}"} {move || difficulty_filter.get().label()}
-                            </span>
-                        </Show>
-                        <button
-                            on:click=move |_| {
-                                search_query.set(String::new());
-                                difficulty_filter.set(DifficultyFilter::All);
-                            }
-                            class="text-[10px] font-mono text-slate-500 hover:text-white underline underline-offset-2 transition-colors"
-                        >
-                            Clear all
-                        </button>
-                    </div>
-                </Show>
 
                 // Course Grid
                 <Show
                     when=move || has_results.get()
-                    fallback=move || view! { <EmptyState query=search_query filter=difficulty_filter /> }
+                    fallback=move || view! { <EmptyState query=search_query /> }
                 >
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {move || {
@@ -251,7 +295,6 @@ pub fn Catalog(app: AppState) -> impl IntoView {
                                 .get()
                                 .into_iter()
                                 .map(|course| {
-                                    let app = app;
                                     let (done, total) = app.get_course_progress(course.id);
                                     let pct = app.get_course_progress_pct(course.id);
                                     let started = app.has_started(course.id);
@@ -293,25 +336,44 @@ fn StatCard(
 }
 
 #[component]
-fn FilterButton(filter: DifficultyFilter, current: RwSignal<DifficultyFilter>) -> impl IntoView {
-    let filter_clone = filter.clone();
-    let is_active = Signal::derive({
-        let current = current;
-        move || current.get() == filter_clone
-    });
-
-    let btn_class = Signal::derive({
-        let filter = filter.clone();
-        move || filter.active_class(is_active.get())
-    });
-
+fn DifficultyFilterButton(filter: DifficultyFilter, current: RwSignal<DifficultyFilter>) -> impl IntoView {
+    let filter_c1 = filter.clone();
+    let is_active = Signal::derive(move || current.get() == filter_c1);
+    
+    let filter_c2 = filter.clone();
+    let btn_class = Signal::derive(move || filter_c2.active_class(is_active.get()));
+    
     let label = filter.label();
+    let filter_c3 = filter.clone();
 
     view! {
         <button
-            on:click=move |_| current.set(filter.clone())
+            on:click=move |_| current.set(filter_c3.clone())
             class=format!(
-                "px-3 sm:px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all shrink-0 {}",
+                "px-4 h-[46px] rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all shrink-0 flex items-center {}",
+                btn_class.get()
+            )
+        >
+            {label}
+        </button>
+    }
+}
+
+#[component]
+fn TagFilterButton(filter: TagFilter, current: RwSignal<TagFilter>, label: String) -> impl IntoView {
+    let filter_c1 = filter.clone();
+    let is_active = Signal::derive(move || current.get() == filter_c1);
+    
+    let filter_c2 = filter.clone();
+    let btn_class = Signal::derive(move || filter_c2.active_class(is_active.get()));
+    
+    let filter_c3 = filter.clone();
+
+    view! {
+        <button
+            on:click=move |_| current.set(filter_c3.clone())
+            class=format!(
+                "px-4 h-[46px] rounded-xl text-[11px] font-black uppercase tracking-wider border transition-all shrink-0 flex items-center {}",
                 btn_class.get()
             )
         >
@@ -323,7 +385,23 @@ fn FilterButton(filter: DifficultyFilter, current: RwSignal<DifficultyFilter>) -
 #[component]
 fn CourseCard(
     app: AppState,
-    course: &'static crate::data::Course,
+    course: &'static crate::data::model::Course,
+    done: usize,
+    total: usize,
+    pct: usize,
+    started: bool,
+) -> impl IntoView {
+    if matches!(course.kind, CourseKind::Focus) {
+        view! { <FocusCard app course done total pct started /> }.into_any()
+    } else {
+        view! { <CurriculumCard app course done total pct started /> }.into_any()
+    }
+}
+
+#[component]
+fn CurriculumCard(
+    app: AppState,
+    course: &'static crate::data::model::Course,
     done: usize,
     total: usize,
     pct: usize,
@@ -334,23 +412,12 @@ fn CourseCard(
     let accent_text = format!("text-{}-500", accent);
     let accent_bar = format!("bg-gradient-to-r from-{}-500 to-{}-400", accent, accent);
     let accent_glow = format!("hover:border-{}-500/30 hover:shadow-[0_0_30px_rgba(249,115,22,0.05)]", accent);
-    let cta_btn =
-        "w-full py-3 rounded-xl font-black text-[11px] tracking-widest transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white shadow-[0_0_18px_rgba(249,115,22,0.2)] border border-orange-400/40";
-
-    let btn_label = if started {
-        if pct >= 100 { "REVIEW" } else { "CONTINUE" }
-    } else {
-        "START"
-    };
-
-    let btn_icon = if started {
-        if pct >= 100 { "\u{1F504}" } else { "\u{25B6}" }
-    } else {
-        "\u{1F680}"
-    };
+    
+    let btn_label = if started { if pct >= 100 { "REVIEW" } else { "CONTINUE" } } else { "START PATH" };
+    let btn_icon = if started { if pct >= 100 { "🔄" } else { "▶" } } else { "🚀" };
 
     let card_class = format!(
-        "group rounded-2xl border border-white/5 bg-white/[0.02] p-5 sm:p-6 transition-all duration-300 hover:border-white/10 hover:translate-y-[-2px] {}",
+        "group rounded-2xl border border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent p-6 transition-all duration-300 hover:translate-y-[-2px] flex flex-col {}",
         accent_glow
     );
 
@@ -358,44 +425,34 @@ fn CourseCard(
 
     view! {
         <div class=card_class>
-            // Top row: icon + difficulty badge
             <div class="flex items-start justify-between mb-4">
-                <div class=format!("{} rounded-xl p-3", accent_bg)>
-                    <span class=format!("{} text-xl", accent_text)>{course.icon}</span>
+                <div class=format!("{} rounded-xl p-4 shadow-inner", accent_bg)>
+                    <span class=format!("{} text-3xl", accent_text)>{course.icon}</span>
                 </div>
                 <span class=format!("text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border {}", course.difficulty.badge_color())>
                     {course.difficulty.label()}
                 </span>
             </div>
 
-            // Title + subtitle
-            <h2 class="text-base sm:text-lg font-black text-white mb-1.5 leading-tight">{course.title}</h2>
-            <p class="text-slate-500 text-xs mb-4 leading-relaxed line-clamp-2">{course.subtitle}</p>
+            <h2 class="text-xl font-black text-white mb-2 leading-tight">{course.title}</h2>
+            <p class="text-slate-400 text-sm mb-6 leading-relaxed flex-1">{course.subtitle}</p>
 
-            // Meta info row
-            <div class="flex items-center gap-3 text-[10px] text-slate-600 font-mono mb-5">
-                <span class="flex items-center gap-1">
-                    <span>{"\u{1F4D6}"}</span> {total} lessons
+            <div class="flex items-center gap-3 text-xs text-slate-500 font-mono mb-6 bg-black/20 p-3 rounded-xl">
+                <span class="flex items-center gap-2">
+                    <span class="text-slate-400">"📚"</span> {total} lessons
                 </span>
-                <span class="text-slate-700">{"\u{2022}"}</span>
-                <span class="flex items-center gap-1">
-                    <span>{"\u{23F1}"}</span> {course.estimated_time}
+                <span class="text-slate-700">|</span>
+                <span class="flex items-center gap-2">
+                    <span class="text-slate-400">"⏱"</span> {course.estimated_time}
                 </span>
-                <Show when=move || (done > 0)>
-                    <span class="text-slate-700">{"\u{2022}"}</span>
-                    <span class="flex items-center gap-1 text-green-400">
-                        <span>{"\u{2705}"}</span> {done} done
-                    </span>
-                </Show>
             </div>
 
-            // Progress bar
-            <div class="mb-5">
-                <div class="flex justify-between text-[10px] font-mono text-slate-600 mb-1.5">
-                    <span>Progress</span>
-                    <span class="text-slate-400">{format!("{done}/{total} ({pct}%)")}</span>
+            <div class="mb-6">
+                <div class="flex justify-between text-[10px] font-mono text-slate-500 mb-2">
+                    <span class="uppercase tracking-widest">Progress</span>
+                    <span class="text-slate-300 font-bold">{format!("{done}/{total} ({pct}%)")}</span>
                 </div>
-                <div class="h-2 bg-slate-800/80 rounded-full overflow-hidden">
+                <div class="h-2 bg-slate-900 rounded-full overflow-hidden shadow-inner">
                     <div
                         class=format!("h-full rounded-full transition-all duration-500 {}", accent_bar)
                         style=format!("width: {}%", pct)
@@ -403,16 +460,9 @@ fn CourseCard(
                 </div>
             </div>
 
-            // Action button
             <button
-                on:click=move |_| {
-                    if started {
-                        app.resume_course(&course_id);
-                    } else {
-                        app.start_course(&course_id);
-                    }
-                }
-                class=cta_btn
+                on:click=move |_| if started { app.resume_course(&course_id) } else { app.start_course(&course_id) }
+                class="w-full py-3 sm:py-4 rounded-xl font-black text-[12px] sm:text-sm tracking-widest transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-400 text-orange-950 shadow-[0_0_20px_rgba(249,115,22,0.15)]"
             >
                 <span>{btn_icon}</span>
                 <span>{btn_label}</span>
@@ -422,33 +472,68 @@ fn CourseCard(
 }
 
 #[component]
-fn EmptyState(query: RwSignal<String>, filter: RwSignal<DifficultyFilter>) -> impl IntoView {
-    let has_filters = Signal::derive(move || {
-        !query.get().is_empty() || filter.get() != DifficultyFilter::All
-    });
+fn FocusCard(
+    app: AppState,
+    course: &'static crate::data::model::Course,
+    done: usize,
+    total: usize,
+    pct: usize,
+    started: bool,
+) -> impl IntoView {
+    let btn_label = if started { if pct >= 100 { "REVIEW" } else { "CONTINUE" } } else { "PRACTICE" };
+    let course_id = course.id.to_string();
+
+    let tag_label = if course.tags.is_empty() {
+        "DEEP DIVE"
+    } else {
+        course.tags[0]
+    };
 
     view! {
-        <div class="flex flex-col items-center justify-center py-20 text-center">
-            <div class="text-6xl mb-6 opacity-30">{"\u{1F50D}"}</div>
+        <div class="group rounded-2xl border border-white/5 bg-white/[0.01] p-5 transition-all duration-300 hover:border-indigo-500/30 hover:bg-white/[0.02] flex flex-col">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="text-2xl">{course.icon}</span>
+                <span class="text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-md">
+                    {tag_label}
+                </span>
+            </div>
+
+            <h2 class="text-base font-black text-white mb-2 leading-tight line-clamp-1">{course.title}</h2>
+            <p class="text-slate-500 text-xs mb-5 line-clamp-2 flex-1">{course.subtitle}</p>
+
+            <div class="flex items-center justify-between mt-auto">
+                <div class="flex flex-col gap-1">
+                    <span class="text-[10px] font-mono text-slate-500">{total} " lessons • " {course.estimated_time}</span>
+                    <div class="w-24 h-1 bg-slate-800 rounded-full overflow-hidden mt-1">
+                        <div class="h-full bg-indigo-500 rounded-full" style=format!("width: {}%", pct)></div>
+                    </div>
+                </div>
+                <button
+                    on:click=move |_| if started { app.resume_course(&course_id) } else { app.start_course(&course_id) }
+                    class="px-4 py-2 bg-white/5 hover:bg-indigo-500 text-slate-300 hover:text-white rounded-lg text-[10px] font-black tracking-widest transition-all"
+                >
+                    {btn_label}
+                </button>
+            </div>
+        </div>
+    }
+}
+
+#[component]
+fn EmptyState(query: RwSignal<String>) -> impl IntoView {
+    view! {
+        <div class="flex flex-col items-center justify-center py-20 text-center col-span-full">
+            <div class="text-6xl mb-6 opacity-30">"🔍"</div>
             <h3 class="text-xl font-black text-white mb-2">No courses found</h3>
             <p class="text-slate-500 text-sm max-w-md mb-6">
-                {move || if has_filters.get() {
-                    "Try adjusting your search or filter criteria to find what you're looking for."
-                } else {
-                    "No courses available yet. Check back soon for new content!"
-                }}
+                "Try adjusting your search criteria to find what you're looking for."
             </p>
-            <Show when=move || has_filters.get()>
-                <button
-                    on:click=move |_| {
-                        query.set(String::new());
-                        filter.set(DifficultyFilter::All);
-                    }
-                    class="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-black text-[11px] tracking-widest transition-all active:scale-95"
-                >
-                    {"\u{2715}"} CLEAR ALL FILTERS
-                </button>
-            </Show>
+            <button
+                on:click=move |_| query.set(String::new())
+                class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-black text-[11px] tracking-widest transition-all active:scale-95"
+            >
+                "✖ CLEAR SEARCH"
+            </button>
         </div>
     }
 }

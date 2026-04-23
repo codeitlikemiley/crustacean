@@ -5,7 +5,7 @@ use leptos::either::Either;
 #[component]
 pub fn CourseDetail(app: AppState, course_id: String) -> impl IntoView {
     let course = app.get_course(&course_id).cloned();
-    let total = course.as_ref().map(|c| c.modules.len()).unwrap_or(0);
+    let total = course.as_ref().map(|c| c.lesson_count()).unwrap_or(0);
     let pct = app.get_course_progress_pct(&course_id);
     let started = app.has_started(&course_id);
 
@@ -37,11 +37,19 @@ pub fn CourseDetail(app: AppState, course_id: String) -> impl IntoView {
 
             let cid_clone = course_id.clone();
 
-            let lesson_items: Vec<_> = course
-                .modules
-                .iter()
-                .enumerate()
-                .map(|(i, m)| {
+            let mut ui_sections = Vec::new();
+            let mut global_idx = 0;
+            
+            let groups = if !course.module_groups.is_empty() {
+                course.module_groups.iter().map(|g| (Some(g.label), g.modules)).collect::<Vec<_>>()
+            } else {
+                vec![(None, course.modules)]
+            };
+
+            for (label, modules) in groups {
+                let mut items = Vec::new();
+                for m in modules {
+                    let i = global_idx;
                     let is_concept = matches!(m.module_type, crate::data::ModuleType::Concept);
                     let progress = app.course_progress.get();
                     let is_completed = progress
@@ -54,12 +62,14 @@ pub fn CourseDetail(app: AppState, course_id: String) -> impl IntoView {
                         .find(|(id, _)| id == &course_id)
                         .map(|(_, p)| p.skipped.get(i).copied().unwrap_or(false))
                         .unwrap_or(false);
-
+                    
                     let is_selected = Signal::derive(move || app.selected_lesson.get() == Some(i));
 
-                    (i, m, is_concept, is_completed, is_skipped, is_selected)
-                })
-                .collect();
+                    items.push((i, m, is_concept, is_completed, is_skipped, is_selected));
+                    global_idx += 1;
+                }
+                ui_sections.push((label, items));
+            }
 
             Either::Left(view! {
                 <div>
@@ -100,8 +110,11 @@ pub fn CourseDetail(app: AppState, course_id: String) -> impl IntoView {
                     <div class="flex items-center justify-between mb-6">
                         <h2 class="text-sm font-black text-slate-400 uppercase tracking-widest">Lessons</h2>
                         <button
-                            on:click=move |_| {
-                                app.resume_prioritized_course(&cid_clone);
+                            on:click={
+                                let cid = cid_clone.clone();
+                                move |_| {
+                                    app.resume_prioritized_course(&cid);
+                                }
                             }
                             class=format!("px-6 py-2 rounded-lg font-black text-[11px] tracking-widest transition-all {}", accent_btn)
                         >
@@ -109,58 +122,77 @@ pub fn CourseDetail(app: AppState, course_id: String) -> impl IntoView {
                         </button>
                     </div>
 
-                    <div class="space-y-1">
-                        {lesson_items.into_iter().map(|(i, m, is_concept, is_completed, is_skipped, is_selected)| {
-                            let idx = i;
-                            let cid = course_id.clone();
-                            let item_id = format!("lesson-item-{}", idx);
-                            let icon = if is_completed {
-                                "\u{2705}"
-                            } else if is_skipped {
-                                "\u{23ED}"
-                            } else if is_concept {
-                                "\u{1F4A1}"
-                            } else {
-                                "\u{26A1}"
-                            };
-
-                            let active_highlight = move || {
-                                if is_selected.get() && app.highlight_active.get() {
-                                    "bg-white/10 ring-1 ring-white/10"
-                                } else if is_selected.get() {
-                                    "bg-white/5"
-                                } else {
-                                    "bg-transparent"
-                                }
-                            };
-
+                    <div class="space-y-6">
+                        {ui_sections.into_iter().map(|(label, items)| {
+                            let cid_loop = cid_clone.clone();
                             view! {
-                                <div
-                                    id=item_id
-                                    class=move || format!("flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-all duration-700 group {}", active_highlight())
-                                    on:click=move |_| {
-                                        app.selected_lesson.set(Some(idx));
-                                        app.trigger_highlight();
-                                    }
-                                >
-                                    <span class="text-sm font-mono text-slate-700 w-6 text-right">{idx + 1}</span>
-                                    <span class="text-lg">{icon}</span>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm text-slate-300 truncate">{m.title}</p>
-                                    </div>
-                                    <span class=format!("text-[10px] font-mono uppercase tracking-widest {}", if is_concept { "text-blue-500/60" } else { "text-orange-500/60" })>
-                                        {if is_concept { "CONCEPT" } else { "PRACTICE" }}
-                                    </span>
-                                    <button
-                                        on:click=move |ev| {
-                                            ev.stop_propagation();
-                                            app.start_course(&cid);
-                                            app.navigate_to(idx);
+                                <div class="space-y-1">
+                                    {if let Some(l) = label {
+                                        view! {
+                                            <div class="flex items-center gap-4 mb-4 mt-2">
+                                                <div class="h-px bg-white/5 flex-1"></div>
+                                                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">{l}</span>
+                                                <div class="h-px bg-white/5 flex-1"></div>
+                                            </div>
+                                        }.into_any()
+                                    } else {
+                                        view! { <div></div> }.into_any()
+                                    }}
+                                    
+                                    {items.into_iter().map(|(i, m, is_concept, is_completed, is_skipped, is_selected)| {
+                                        let idx = i;
+                                        let cid = cid_loop.clone();
+                                        let item_id = format!("lesson-item-{}", idx);
+                                        let icon = if is_completed {
+                                            "✅"
+                                        } else if is_skipped {
+                                            "⏭"
+                                        } else if is_concept {
+                                            "💡"
+                                        } else {
+                                            "⚡"
+                                        };
+
+                                        let active_highlight = move || {
+                                            if is_selected.get() && app.highlight_active.get() {
+                                                "bg-white/10 ring-1 ring-white/10"
+                                            } else if is_selected.get() {
+                                                "bg-white/5"
+                                            } else {
+                                                "bg-transparent"
+                                            }
+                                        };
+
+                                        view! {
+                                            <div
+                                                id=item_id
+                                                class=move || format!("flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-all duration-700 group {}", active_highlight())
+                                                on:click=move |_| {
+                                                    app.selected_lesson.set(Some(idx));
+                                                    app.trigger_highlight();
+                                                }
+                                            >
+                                                <span class="text-sm font-mono text-slate-700 w-6 text-right">{idx + 1}</span>
+                                                <span class="text-lg">{icon}</span>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm text-slate-300 truncate">{m.title}</p>
+                                                </div>
+                                                <span class=format!("text-[10px] font-mono uppercase tracking-widest {}", if is_concept { "text-blue-500/60" } else { "text-orange-500/60" })>
+                                                    {if is_concept { "CONCEPT" } else { "PRACTICE" }}
+                                                </span>
+                                                <button
+                                                    on:click=move |ev| {
+                                                        ev.stop_propagation();
+                                                        app.start_course(&cid);
+                                                        app.navigate_to(idx);
+                                                    }
+                                                    class="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-white transition-all text-xs font-mono uppercase tracking-widest"
+                                                >
+                                                    "→"
+                                                </button>
+                                            </div>
                                         }
-                                        class="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-white transition-all text-xs font-mono uppercase tracking-widest"
-                                    >
-                                        {"\u{2192}"}
-                                    </button>
+                                    }).collect::<Vec<_>>()}
                                 </div>
                             }
                         }).collect::<Vec<_>>()}

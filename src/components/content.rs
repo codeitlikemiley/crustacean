@@ -17,8 +17,8 @@ pub fn Content(app: AppState, is_concept: Signal<bool>) -> impl IntoView {
         if let Some(cid) = course_id.get() {
             if let Some(course) = app.get_course(&cid) {
                 let step = current_step.get();
-                if step < course.modules.len() {
-                    return Some(&course.modules[step]);
+                if step < course.lesson_count() {
+                    return course.get_module(step);
                 }
             }
         }

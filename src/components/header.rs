@@ -32,8 +32,8 @@ pub fn Header(app: AppState) -> impl IntoView {
         if let Some(cid) = lesson_course_id.get() {
             if let Some(course) = app.get_course(&cid) {
                 let step = current_step.get();
-                if step < course.modules.len() {
-                    return match course.modules[step].module_type {
+                if step < course.lesson_count() {
+                    return match course.get_module(step).unwrap().module_type {
                         crate::data::ModuleType::Concept => "\u{1F4A1}",
                         crate::data::ModuleType::Practice => "\u{26A1}",
                     };
@@ -47,8 +47,8 @@ pub fn Header(app: AppState) -> impl IntoView {
         if let Some(cid) = lesson_course_id.get() {
             if let Some(course) = app.get_course(&cid) {
                 let step = current_step.get();
-                if step < course.modules.len() {
-                    return match course.modules[step].module_type {
+                if step < course.lesson_count() {
+                    return match course.get_module(step).unwrap().module_type {
                         crate::data::ModuleType::Concept => "ACKNOWLEDGE",
                         crate::data::ModuleType::Practice => "CHECK_ANSWER",
                     };
@@ -62,8 +62,8 @@ pub fn Header(app: AppState) -> impl IntoView {
         if let Some(cid) = lesson_course_id.get() {
             if let Some(course) = app.get_course(&cid) {
                 let step = current_step.get();
-                if step < course.modules.len() {
-                    return match course.modules[step].module_type {
+                if step < course.lesson_count() {
+                    return match course.get_module(step).unwrap().module_type {
                         crate::data::ModuleType::Concept => "flex items-center gap-2 px-4 sm:px-6 py-2 rounded-lg font-black text-[11px] tracking-widest transition-all active:scale-95 bg-blue-600 text-white",
                         crate::data::ModuleType::Practice => "flex items-center gap-2 px-4 sm:px-6 py-2 rounded-lg font-black text-[11px] tracking-widest transition-all active:scale-95 bg-orange-600 text-white shadow-[0_0_20px_rgba(234,88,12,0.2)]",
                     };
@@ -76,7 +76,7 @@ pub fn Header(app: AppState) -> impl IntoView {
     let module_count = Signal::derive(move || {
         if let Some(cid) = lesson_course_id.get() {
             if let Some(course) = app.get_course(&cid) {
-                return course.modules.len();
+                return course.lesson_count();
             }
         }
         0

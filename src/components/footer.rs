@@ -11,7 +11,7 @@ pub fn Footer(app: AppState) -> impl IntoView {
     let module_count = Signal::derive(move || {
         if let AppView::Lesson { ref course_id } = current_view.get() {
             if let Some(course) = app.get_course(course_id) {
-                return course.modules.len();
+                return course.lesson_count();
             }
         }
         1

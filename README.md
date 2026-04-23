@@ -43,22 +43,28 @@ Navigate the platform efficiently using these shortcuts:
 - **Ctrl + n / p**: Next / Previous step (macOS/Legacy)
 - **Ctrl + j / k**: Next / Previous step (Vim-like)
 
-## ✍️ Creating Content (Skills)
+## ✍️ Creating Content (AI Skills)
 
-This project uses a dedicated skill for adding content located at `skills/software-development/rust-tuts.md`.
+This project heavily utilizes AI-assisted content generation. We provide a dedicated **"Skill"** (instruction set) located at `skills/software-development/rust-tuts.md`. This file contains the exact semantic schema, validation logic, and architectural rules required to build new Rust courses for this platform.
 
-### Adding a New Course
+### Using the Agent Skill
 
-1. **Create Data**: Add a new file in `src/data/` (e.g., `src/data/my_course.rs`).
-2. **Define Modules**: Use the `TutorialModule` struct.
-   - `ModuleType::Concept`: For reading/explanation.
-   - `ModuleType::Practice`: For coding exercises with validation.
-3. **Validation**: Define rules in `ValidationSpec`. We use a frontend-only validation engine (no backend compiler).
-4. **Register**: Add your course to `src/data/courses.rs`.
+To quickly generate high-quality, validating Rust courses, you should rely on an AI agent (like Antigravity or a Gemini CLI) equipped with this skill:
 
-### Using the Gemini Skill
-If you are using Gemini CLI, activate the skill to get expert guidance:
-`activate_skill("rust-tuts")`
+1. **Activate the Skill**:
+   - Instruct your agent to read the skill file: `Please review the skill at skills/software-development/rust-tuts.md`.
+   - The agent will learn our exact data structure (`TutorialModule`, `ValidationSpec`, `NormalizeOptions`, `RuleMatcher`, etc.) and the "frontend-only" validation philosophy.
+
+2. **Generate a Course**:
+   - Ask the agent to generate a course on a specific topic (e.g., "Create a Deep Dive Focus course on Rust Atomics").
+   - The agent will automatically generate a new `src/data/focus_atomics.rs` file with balanced `Concept` and `Practice` lessons.
+   - It will write custom regex/contains matching rules that act as our "compiler-less" validation engine.
+
+3. **Register the Course**:
+   - Have the agent (or manually) expose the new module in `src/data/mod.rs` and `src/data/lesson_pool.rs`.
+   - Finally, add the `Course` struct definition to the `COURSES` array in `src/data/courses.rs`.
+
+By strictly following the `rust-tuts.md` skill, we ensure that all generated courses are perfectly consistent, immediately compilable, and adhere to the platform's unique UX patterns.
 
 ## 🤝 Contributing a Lesson
 

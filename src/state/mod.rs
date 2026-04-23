@@ -69,7 +69,7 @@ fn migrate_legacy() -> Vec<(String, PerCourseProgress)> {
                 let module_count = COURSES
                     .iter()
                     .find(|c| c.id == "rust-traits")
-                    .map(|c| c.modules.len())
+                    .map(|c| c.lesson_count())
                     .unwrap_or(32);
 
                 let mut codes = legacy.codes;
@@ -77,8 +77,8 @@ fn migrate_legacy() -> Vec<(String, PerCourseProgress)> {
                 while codes.len() < module_count {
                     if let Some(course) = COURSES.iter().find(|c| c.id == "rust-traits") {
                         let idx = codes.len();
-                        if idx < course.modules.len() {
-                            codes.push(course.modules[idx].initial_code.to_string());
+                        if idx < course.lesson_count() {
+                            codes.push(course.get_module(idx).unwrap().initial_code.to_string());
                         }
                     } else {
                         break;
@@ -283,7 +283,7 @@ impl AppState {
             if let Some((_, p)) = progress.iter().find(|(id, _)| id == &cid) {
                 let course = COURSES.iter().find(|c| c.id == cid.as_str());
                 let step = p.current_step.min(
-                    course.map(|c| c.modules.len()).unwrap_or(1).saturating_sub(1),
+                    course.map(|c| c.lesson_count()).unwrap_or(1).saturating_sub(1),
                 );
                 let code = p.codes.get(step).cloned().unwrap_or_else(|| {
                     course
@@ -323,8 +323,8 @@ impl AppState {
                     while p.codes.len() <= step {
                         if let Some(course) = COURSES.iter().find(|c| c.id == cid.as_str()) {
                             let idx = p.codes.len();
-                            if idx < course.modules.len() {
-                                p.codes.push(course.modules[idx].initial_code.to_string());
+                            if idx < course.lesson_count() {
+                                p.codes.push(course.get_module(idx).unwrap().initial_code.to_string());
                             } else {
                                 p.codes.push(String::new());
                             }
@@ -338,7 +338,7 @@ impl AppState {
                     // Create new progress entry
                     if let Some(course) = COURSES.iter().find(|c| c.id == cid.as_str()) {
                         let mut codes: Vec<String> =
-                            course.modules.iter().map(|m| m.initial_code.to_string()).collect();
+                            course.effective_modules().into_iter().map(|m| m.initial_code.to_string()).collect();
                         if step < codes.len() {
                             codes[step] = code_val;
                         }
@@ -374,7 +374,7 @@ impl AppState {
             return (done, total);
         }
         if let Some(course) = self.get_course(course_id) {
-            (0, course.modules.len())
+            (0, course.lesson_count())
         } else {
             (0, 0)
         }
@@ -425,7 +425,7 @@ impl AppState {
                     }
                 }
                 // If all completed, return the last one
-                return course.modules.len().saturating_sub(1);
+                return course.lesson_count().saturating_sub(1);
             }
         }
         0
@@ -448,7 +448,7 @@ impl AppState {
         if let AppView::CourseDetail { ref course_id } = self.current_view.get_untracked() {
             if let Some(course) = self.get_course(course_id) {
                 let current = self.selected_lesson.get_untracked().unwrap_or(0);
-                if current < course.modules.len() - 1 {
+                if current < course.lesson_count() - 1 {
                     self.selected_lesson.set(Some(current + 1));
                     self.trigger_highlight();
                 }
@@ -494,7 +494,7 @@ impl AppState {
         };
 
         if let Some(course) = self.get_course(course_id) {
-            let step = start_step.min(course.modules.len().saturating_sub(1));
+            let step = start_step.min(course.lesson_count().saturating_sub(1));
             self.current_step.set(step);
             let progress = self.course_progress.get();
             if let Some((_, p)) = progress.iter().find(|(id, _)| id == course_id) {
@@ -502,20 +502,20 @@ impl AppState {
                     .codes
                     .get(step)
                     .cloned()
-                    .unwrap_or_else(|| course.modules[step].initial_code.to_string());
+                    .unwrap_or_else(|| course.get_module(step).unwrap().initial_code.to_string());
                 self.code.set(code);
             }
         }
         self.completed.set(vec![
             false;
             self.get_course(course_id)
-                .map(|c| c.modules.len())
+                .map(|c| c.lesson_count())
                 .unwrap_or(0)
         ]);
         self.skipped.set(vec![
             false;
             self.get_course(course_id)
-                .map(|c| c.modules.len())
+                .map(|c| c.lesson_count())
                 .unwrap_or(0)
         ]);
         // Restore completed/skipped from persisted state
@@ -525,7 +525,7 @@ impl AppState {
                 self.completed.set(p.completed.clone());
                 self.skipped.set(p.skipped.clone());
                 self.current_step
-                    .set(p.current_step.min(course.modules.len().saturating_sub(1)));
+                    .set(p.current_step.min(course.lesson_count().saturating_sub(1)));
             }
         }
         // Load diagnostics for the starting step
@@ -548,8 +548,8 @@ impl AppState {
                         .iter()
                         .map(|m| m.initial_code.to_string())
                         .collect(),
-                    completed: vec![false; course.modules.len()],
-                    skipped: vec![false; course.modules.len()],
+                    completed: vec![false; course.lesson_count()],
+                    skipped: vec![false; course.lesson_count()],
                     started: false,
                 };
                 self.course_progress
@@ -569,7 +569,7 @@ impl AppState {
         self.save_diagnostics_for_current_step();
 
         if let Some(course) = self.get_course(&course_id) {
-            let max_step = course.modules.len().saturating_sub(1);
+            let max_step = course.lesson_count().saturating_sub(1);
             let target_step = step.min(max_step);
             self.current_step.set(target_step);
             
@@ -580,7 +580,7 @@ impl AppState {
                     .codes
                     .get(target_step)
                     .cloned()
-                    .unwrap_or_else(|| course.modules[target_step].initial_code.to_string());
+                    .unwrap_or_else(|| course.get_module(target_step).unwrap().initial_code.to_string());
                 self.code.set(saved_code);
             }
             
@@ -598,7 +598,7 @@ impl AppState {
         };
 
         if let Some(course) = self.get_course(&course_id) {
-            if step >= course.modules.len() {
+            if step >= course.lesson_count() {
                 return;
             }
             // Save current step diagnostics before switching
@@ -612,7 +612,7 @@ impl AppState {
                     .codes
                     .get(step)
                     .cloned()
-                    .unwrap_or_else(|| course.modules[step].initial_code.to_string());
+                    .unwrap_or_else(|| course.get_module(step).unwrap().initial_code.to_string());
                 self.code.set(saved);
             }
             // Load diagnostics for the target step
@@ -634,8 +634,8 @@ impl AppState {
                 while p.codes.len() <= idx {
                     if let Some(course) = COURSES.iter().find(|c| c.id == course_id.as_str()) {
                         let i = p.codes.len();
-                        if i < course.modules.len() {
-                            p.codes.push(course.modules[i].initial_code.to_string());
+                        if i < course.lesson_count() {
+                            p.codes.push(course.get_module(i).unwrap().initial_code.to_string());
                         } else {
                             p.codes.push(String::new());
                         }
@@ -658,38 +658,71 @@ impl AppState {
 
         if let Some(course) = self.get_course(&course_id) {
             let current = self.current_step.get();
-            if current < course.modules.len() - 1 {
-                // Save current step diagnostics before switching
-                self.save_diagnostics_for_current_step();
-                self.save_current_code();
+            let is_concept = matches!(
+                course.get_module(current).unwrap().module_type,
+                ModuleType::Concept
+            );
 
-                // If current module is a Concept, mark it completed when moving next
-                if matches!(course.modules[current].module_type, ModuleType::Concept) {
-                    self.completed.update(|c| {
-                        if current < c.len() {
-                            c[current] = true;
-                        }
-                    });
-                } else {
-                    self.skipped.update(|s| s[current] = true);
-                }
+            // Save state for current step
+            self.save_diagnostics_for_current_step();
+            self.save_current_code();
 
+            // Mark completed or skipped
+            if is_concept || self.is_success.get() {
+                self.completed.update(|c| {
+                    if current < c.len() {
+                        c[current] = true;
+                    }
+                });
+            } else {
+                self.skipped.update(|s| {
+                    if current < s.len() {
+                        s[current] = true;
+                    }
+                });
+            }
+
+            if current < course.lesson_count() {
                 let next = current + 1;
                 self.current_step.set(next);
-                let progress = self.course_progress.get();
-                if let Some((_, p)) = progress.iter().find(|(id, _)| id == &course_id) {
-                    let saved = p
-                        .codes
-                        .get(next)
-                        .cloned()
-                        .unwrap_or_else(|| course.modules[next].initial_code.to_string());
-                    self.code.set(saved);
+                
+                if next < course.lesson_count() {
+                    let progress = self.course_progress.get();
+                    if let Some((_, p)) = progress.iter().find(|(id, _)| id == &course_id) {
+                        let saved = p
+                            .codes
+                            .get(next)
+                            .cloned()
+                            .unwrap_or_else(|| course.get_module(next).unwrap().initial_code.to_string());
+                        self.code.set(saved);
+                    }
+                    self.load_diagnostics_for_step(&course_id, next);
+                    self.is_success.set(false);
                 }
-                // Load diagnostics for the next step
-                self.load_diagnostics_for_step(&course_id, next);
-                self.is_success.set(false);
             }
         }
+    }
+
+    pub fn find_parent_curriculums(&self, focus_course_id: &str) -> Vec<crate::data::model::Course> {
+        let mut parents = Vec::new();
+        if let Some(focus_course) = self.get_course(focus_course_id) {
+            if !matches!(focus_course.kind, crate::data::model::CourseKind::Focus) {
+                return parents;
+            }
+            let focus_ptr = focus_course.modules.as_ptr();
+            
+            for course in crate::data::courses::COURSES {
+                if matches!(course.kind, crate::data::model::CourseKind::Curriculum) {
+                    for group in course.module_groups {
+                        if group.modules.as_ptr() == focus_ptr {
+                            parents.push(course.clone());
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        parents
     }
 
     pub fn prev_step(&self) {
@@ -711,7 +744,7 @@ impl AppState {
                         .codes
                         .get(prev)
                         .cloned()
-                        .unwrap_or_else(|| course.modules[prev].initial_code.to_string());
+                        .unwrap_or_else(|| course.get_module(prev).unwrap().initial_code.to_string());
                     self.code.set(saved);
                 }
                 // Load diagnostics for the previous step
@@ -760,11 +793,11 @@ impl AppState {
 
         let step = self.current_step.get();
         if let Some(course) = self.get_course(&course_id) {
-            if step >= course.modules.len() {
+            if step >= course.lesson_count() {
                 return false;
             }
 
-            let module = &course.modules[step];
+            let module = course.get_module(step).unwrap();
             let result = validate_module(module, &self.code.get());
 
             if result.passed {
@@ -817,9 +850,9 @@ impl AppState {
         };
         let step = self.current_step.get();
         if let Some(course) = self.get_course(&course_id) {
-            if step < course.modules.len() {
+            if step < course.lesson_count() {
                 self.code
-                    .set(course.modules[step].initial_code.to_string());
+                    .set(course.get_module(step).unwrap().initial_code.to_string());
             }
         }
     }
@@ -887,7 +920,7 @@ impl AppState {
         let mut total = 0;
         for (id, p) in progress.iter() {
             if let Some(course) = self.get_course(id) {
-                let actual_total = course.modules.len();
+                let actual_total = course.lesson_count();
                 let completed = p.completed.iter().filter(|&&b| b).count().min(actual_total);
                 total += completed;
             }
@@ -896,7 +929,7 @@ impl AppState {
     }
 
     pub fn get_total_lessons(&self) -> usize {
-        COURSES.iter().map(|c| c.modules.len()).sum()
+        COURSES.iter().map(|c| c.lesson_count()).sum()
     }
 
     pub fn get_courses_started_count(&self) -> usize {

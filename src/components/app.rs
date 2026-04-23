@@ -1,4 +1,5 @@
 use crate::components::catalog::Catalog;
+use crate::components::completion_screen::CompletionScreen;
 use crate::components::command_palette::CommandPalette;
 use crate::components::content::Content;
 use crate::components::course_detail::CourseDetail;
@@ -22,12 +23,23 @@ pub fn App() -> impl IntoView {
     let is_detail = Signal::derive(move || matches!(current_view.get(), AppView::CourseDetail { .. }));
     let is_lesson = Signal::derive(move || matches!(current_view.get(), AppView::Lesson { .. }));
 
+    let is_completed_screen = Signal::derive(move || {
+        if let AppView::Lesson { ref course_id } = current_view.get() {
+            if let Some(course) = app.get_course(course_id) {
+                return app.current_step.get() >= course.lesson_count();
+            }
+        }
+        false
+    });
+
+    let is_active_lesson = Signal::derive(move || is_lesson.get() && !is_completed_screen.get());
+
     let is_concept = Signal::derive(move || {
         if let AppView::Lesson { ref course_id } = current_view.get() {
             if let Some(course) = app.get_course(course_id) {
                 let step = app.current_step.get();
-                if step < course.modules.len() {
-                    return matches!(course.modules[step].module_type, ModuleType::Concept);
+                if step < course.lesson_count() {
+                    return matches!(course.get_module(step).unwrap().module_type, ModuleType::Concept);
                 }
             }
         }
@@ -57,7 +69,7 @@ pub fn App() -> impl IntoView {
                 }}
             </Show>
 
-            <Show when=move || is_lesson.get() fallback=|| ()>
+            <Show when=move || is_active_lesson.get() fallback=|| ()>
                 <main class="flex flex-col lg:flex-row flex-1 overflow-hidden">
                     <Content app is_concept=is_concept />
                     <Show when=move || !is_concept.get() fallback=|| ()>
@@ -69,8 +81,12 @@ pub fn App() -> impl IntoView {
                 </main>
             </Show>
 
+            <Show when=move || is_completed_screen.get() fallback=|| ()>
+                <CompletionScreen app />
+            </Show>
+
             <Show
-                when=move || is_lesson.get()
+                when=move || is_active_lesson.get()
                 fallback=|| ()
             >
                 <Footer app />

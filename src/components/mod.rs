@@ -8,3 +8,4 @@ pub mod catalog;
 pub mod course_detail;
 pub mod command_palette;
 pub mod keyboard_shortcuts;
+pub mod completion_screen;

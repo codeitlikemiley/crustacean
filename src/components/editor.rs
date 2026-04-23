@@ -15,9 +15,9 @@ pub fn Editor(app: AppState) -> impl IntoView {
         if let AppView::Lesson { ref course_id } = current_view.get() {
             if let Some(course) = app.get_course(course_id) {
                 let step = current_step.get();
-                if step < course.modules.len() {
+                if step < course.lesson_count() {
                     return matches!(
-                        course.modules[step].module_type,
+                        course.get_module(step).unwrap().module_type,
                         crate::data::ModuleType::Concept
                     );
                 }
@@ -30,8 +30,8 @@ pub fn Editor(app: AppState) -> impl IntoView {
         if let AppView::Lesson { ref course_id } = current_view.get() {
             if let Some(course) = app.get_course(course_id) {
                 let step = current_step.get();
-                if step < course.modules.len() {
-                    return match course.modules[step].module_type {
+                if step < course.lesson_count() {
+                    return match course.get_module(step).unwrap().module_type {
                         crate::data::ModuleType::Concept => {
                             "Read the concept on the left to proceed..."
                         }
